@@ -1,8 +1,12 @@
 import bcrypt from "bcrypt";
 import { PrismaClient, Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
-
 const prisma = new PrismaClient();
+import { renameSync } from "fs";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
 
 // Utility function to hash passwords
 const generatePassword = async (password) => {
@@ -166,20 +170,11 @@ export const setUserInfo = async (req, res, next) => {
       return res.status(400).json({ error: "Invalid input types." });
     }
 
-    // Check for username availability
-    const usernameValid = await prisma.user.findUnique({
-      where: { username: username },
-    });
-
-    if (usernameValid) {
-      return res.status(200).json({ usernameError: true });
-    }
-
     // Update user profile
     await prisma.user.update({
       where: { id: req.userId },
       data: {
-        username: username,
+        username,
         fullname,
         description,
         isProfileInfoSet: true,
@@ -189,10 +184,11 @@ export const setUserInfo = async (req, res, next) => {
     return res.status(200).json({ message: "Profile data updated successfully." });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
-      if (err.code === "P2002") {
-        return res.status(400).json({ usernameError: true });
+      if (err.code === "P2002" && err.meta?.target?.includes("username")) {
+        return res.status(409).json({ userNameError: "Username already exists." });
       }
     }
+
     console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   } finally {
@@ -200,26 +196,44 @@ export const setUserInfo = async (req, res, next) => {
   }
 };
 
-export const setUserImage = async (req, res, next) => {
+export const setUserImage = async (req, res) => {
   try {
-    if (req?.userId) {
-      const { file } = req;
-      if (file) {
-        const prisma = new PrismaClient();
-        await prisma.user.update({
-          where: { id: req.userId },
-          data: {
-            profileImage: file.filename,
-          },
-        });
-        return res.status(200).send("Profile image updated successfully.");
-      } else {
-        return res.status(400).send("Profile image should be included.");
-      }
+    if (!req.file) return res.status(400).send("Image not included.");
+    if (!req.userId) return res.status(400).send("Cookie Error.");
+
+    const date = Date.now();
+
+    // Simulate __dirname
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    const uploadDir = path.join(__dirname, "../public/uploads/profiles");
+
+    // Ensure the directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
+
+    // Construct file paths
+    const fileName = path.join(uploadDir, `${date}${req.userId}${req.file.originalname}`);
+    const relativePath = `/uploads/profiles/${date}${req.userId}${req.file.originalname}`;
+
+    console.log("Source Path:", req.file.path);
+    console.log("Destination Path:", fileName);
+
+    // Rename file
+    renameSync(req.file.path, fileName);
+
+    // Update database
+    const prisma = new PrismaClient();
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { profileImage: relativePath },
+    });
+
+    res.status(200).json({ img: relativePath });
   } catch (err) {
-    return res.status(500).send("Internal Server Error");
+    console.error("Error during image upload:", err);
+    res.status(500).send("Internal Server Error: " + err.message);
   }
 };
-
-
