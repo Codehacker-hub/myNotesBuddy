@@ -4,7 +4,9 @@ import {
   getUserInfo,
   setUserInfo,
   setUserImage,
+  setUserName,
   login,
+
 } from "../controllers/AuthControllers.js";
 import { verifyToken } from "../middlewares/AuthMiddleware.js";
 import multer from "multer";
@@ -30,6 +32,7 @@ const authRoutes = Router();
 authRoutes.post("/signup", signup);
 authRoutes.post("/login", login);
 authRoutes.post("/get-user-info", verifyToken, getUserInfo);
+authRoutes.post("/set-username" , verifyToken, setUserName);
 authRoutes.post("/set-user-info", verifyToken, setUserInfo);
 
 authRoutes.post(

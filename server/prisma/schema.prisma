@@ -13,14 +13,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  email String @unique
-  password String
-  username String? @unique
-  fullname String?
-  description String?
-  profileImage String?
-  isProfileInfoSet Boolean? @default(false)
-  createdAt DateTime @default(now())
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  username          String?   @unique
+  fullname          String?
+  description       String?
+  profileImage      String?
+  isProfileInfoSet  Boolean?  @default(false)
+  createdAt         DateTime  @default(now())
+  
+  // New fields for freelancer verification
+  phoneNumber       String?   @unique
+  isFreelancer      Boolean   @default(false)  // Indicates if the user is a freelancer
+  isVerified        Boolean   @default(false)  // Indicates if the freelancer is verified
+  verificationDocs  String?   // Path or URL to the uploaded verification document (e.g., ID card, Aadhar)
+  portfolio         String?   // URL or path to the freelancer's portfolio (e.g., handwritten samples)
+  verificationDate  DateTime? // Date when the freelancer was verified
+  
+  // Optionally, an admin could approve the freelancer (manual review process)
+  isAdminApproved   Boolean   @default(false)  // Admin approval flag for freelancers
 }

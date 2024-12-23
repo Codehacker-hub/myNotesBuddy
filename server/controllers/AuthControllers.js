@@ -196,6 +196,44 @@ export const setUserInfo = async (req, res, next) => {
   }
 };
 
+export const setUserName = async (req, res, next) => {
+  try {
+    // Ensure userId is present in the request
+    if (!req.userId) {
+      return res.status(401).json({ error: "Unauthorized: Missing user ID." });
+    }
+
+    const { username } = req.body;
+
+    // Validate the username
+    if (typeof username !== "string" || username.trim().length === 0) {
+      return res.status(400).json({ error: "Invalid input type or empty username." });
+    }
+
+    const prisma = new PrismaClient();
+
+    // Attempt to update the username
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { username },
+    });
+
+    return res.status(200).json({ message: "Username updated successfully." });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      // Handle unique constraint violation for username
+      if (err.code === "P2002" && err.meta?.target?.includes("username")) {
+        return res.status(409).json({ error: "Username already exists." });
+      }
+    }
+    return res.status(500).json({ error: "Internal Server Error" });
+  } finally {
+    // Always disconnect Prisma client
+    const prisma = new PrismaClient();
+    await prisma.$disconnect();
+  }
+};
+
 export const setUserImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("Image not included.");
@@ -214,18 +252,34 @@ export const setUserImage = async (req, res) => {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Construct file paths
+    // Construct file paths for the new image
     const fileName = path.join(uploadDir, `${date}${req.userId}${req.file.originalname}`);
     const relativePath = `/uploads/profiles/${date}${req.userId}${req.file.originalname}`;
 
     console.log("Source Path:", req.file.path);
     console.log("Destination Path:", fileName);
 
-    // Rename file
+    // Get the old profile image path from the database
+    const prisma = new PrismaClient();
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { profileImage: true },
+    });
+
+    // If the user has an old profile image, delete it from storage
+    if (user && user.profileImage) {
+      const oldImagePath = path.join(__dirname, `../public${user.profileImage}`);
+      
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath); // Delete the old profile image file
+        console.log(`Old image deleted: ${oldImagePath}`);
+      }
+    }
+
+    // Rename and save the new image
     renameSync(req.file.path, fileName);
 
-    // Update database
-    const prisma = new PrismaClient();
+    // Update the database with the new profile image path
     await prisma.user.update({
       where: { id: req.userId },
       data: { profileImage: relativePath },
@@ -237,3 +291,4 @@ export const setUserImage = async (req, res) => {
     res.status(500).send("Internal Server Error: " + err.message);
   }
 };
+
