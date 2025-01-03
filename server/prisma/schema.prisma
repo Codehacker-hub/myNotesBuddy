@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,24 +8,47 @@ datasource db {
 }
 
 model User {
-  id                Int       @id @default(autoincrement())
-  email             String    @unique
-  password          String
-  username          String?   @unique
-  fullname          String?
-  description       String?
-  profileImage      String?
-  isProfileInfoSet  Boolean?  @default(false)
-  createdAt         DateTime  @default(now())
-  
-  // New fields for freelancer verification
-  phoneNumber       String?   @unique
-  isFreelancer      Boolean   @default(false)  // Indicates if the user is a freelancer
-  isVerified        Boolean   @default(false)  // Indicates if the freelancer is verified
-  verificationDocs  String?   // Path or URL to the uploaded verification document (e.g., ID card, Aadhar)
-  portfolio         String?   // URL or path to the freelancer's portfolio (e.g., handwritten samples)
-  verificationDate  DateTime? // Date when the freelancer was verified
-  
-  // Optionally, an admin could approve the freelancer (manual review process)
-  isAdminApproved   Boolean   @default(false)  // Admin approval flag for freelancers
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  password         String
+  username         String?  @unique
+  fullname         String?
+  description      String?
+  profileImage     String?
+  isProfileInfoSet Boolean? @default(false)
+  createdAt        DateTime @default(now())
+  phone            String?  @unique
+
+  // Freelancer-related fields
+  isFreelancer     Boolean   @default(false)
+  isVerified       Boolean   @default(false)
+  verificationDocs String?   // Path or URL to the uploaded verification document
+  portfolio        String?   // Portfolio link or file path
+  verificationDate DateTime? // When the verification was completed
+  isAdminApproved  Boolean   @default(false) // Whether admin approved the freelancer
+
+  // Additional fields for freelancer profile
+  language         String[]  @default([])    // Languages known
+  qualifications   String[]  @default([])    // Academic or professional qualifications
+  hobbies          String[]  @default([])    // Freelancer's hobbies
+  skills           String[]  @default([])    // Skills
+  dateOfBirth      DateTime? // Date of birth
+  gender           String?   // Gender of the user
+  experience       Int?      // Experience in years
+  interests        String[]  @default([])    // Interests of the freelancer
+
+  // Address fields
+  houseNo          String?
+  street           String?
+  city             String?
+  state            String?
+  postalCode       String?
+  country          String  @default("India") // Default country set to India
+  apartment        String?
+  landmark         String?
+  addressType      String?   // e.g., Residential or Commercial
+
+  // Relationships (optional)
+  // Add if you plan to track tasks, projects, or orders associated with freelancers
+  // tasks            Task[]   // Example relationship for freelancer tasks
 }

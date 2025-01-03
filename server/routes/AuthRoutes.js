@@ -6,7 +6,7 @@ import {
   setUserImage,
   setUserName,
   login,
-
+  submitFreelancerForm,
 } from "../controllers/AuthControllers.js";
 import { verifyToken } from "../middlewares/AuthMiddleware.js";
 import multer from "multer";
@@ -34,6 +34,14 @@ authRoutes.post("/login", login);
 authRoutes.post("/get-user-info", verifyToken, getUserInfo);
 authRoutes.post("/set-username" , verifyToken, setUserName);
 authRoutes.post("/set-user-info", verifyToken, setUserInfo);
+
+authRoutes.post(
+  "/submit-freelancer-form",
+  verifyToken,
+  upload.single("verificationDocs"), // Handles file upload
+  submitFreelancerForm
+);
+
 
 authRoutes.post(
   "/set-user-image",
